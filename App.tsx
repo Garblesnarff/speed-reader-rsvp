@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [wpm, setWpm] = useState<number>(300);
   const [isContextOpen, setIsContextOpen] = useState<boolean>(true);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
 
   // Refs for timing
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -32,13 +33,33 @@ const App: React.FC = () => {
       setCurrentIndex(0);
       setMode(AppMode.READER);
       setIsPlaying(false); // Let user start manually, or auto-start if preferred
+      setElapsedTime(0);
     }
   };
 
   const handleBackToInput = () => {
     setIsPlaying(false);
     setMode(AppMode.INPUT);
+    setElapsedTime(0);
   };
+
+  const handleRestart = () => {
+    setCurrentIndex(0);
+    setElapsedTime(0);
+  };
+
+  // Timer Logic
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isPlaying]);
 
   // The main RSVP Loop
   useEffect(() => {
@@ -115,7 +136,7 @@ const App: React.FC = () => {
             onWpmChange={setWpm}
             progress={progress}
             onSeek={handleSeek}
-            onRestart={() => setCurrentIndex(0)}
+            onRestart={handleRestart}
             isContextOpen={isContextOpen}
             onToggleContext={() => setIsContextOpen(!isContextOpen)}
           />
@@ -124,6 +145,7 @@ const App: React.FC = () => {
             words={words}
             currentIndex={currentIndex}
             isOpen={isContextOpen}
+            elapsedTime={elapsedTime}
           />
         </div>
       </main>

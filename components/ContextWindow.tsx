@@ -4,9 +4,10 @@ interface ContextWindowProps {
   words: string[];
   currentIndex: number;
   isOpen: boolean;
+  elapsedTime: number;
 }
 
-const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOpen }) => {
+const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOpen, elapsedTime }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeWordRef = useRef<HTMLSpanElement>(null);
 
@@ -21,13 +22,23 @@ const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOp
     }
   }, [currentIndex, isOpen]);
 
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   if (!isOpen) return null;
 
   return (
     <div className="w-full bg-gray-900 border-t border-gray-800 h-48 sm:h-64 transition-all duration-300 ease-in-out flex flex-col">
       <div className="px-4 py-2 bg-gray-950 border-b border-gray-800 text-xs text-gray-500 font-mono flex justify-between uppercase tracking-wider">
         <span>Context View</span>
-        <span>Word {currentIndex + 1} / {words.length}</span>
+        <div className="flex gap-3">
+          <span title="Elapsed Time" className="text-gray-300">{formatTime(elapsedTime)}</span>
+          <span className="text-gray-700">|</span>
+          <span>Word {currentIndex + 1} / {words.length}</span>
+        </div>
       </div>
       
       <div 
