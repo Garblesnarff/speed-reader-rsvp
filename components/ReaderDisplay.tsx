@@ -1,11 +1,40 @@
 import React from 'react';
-import { getORPSplit } from '../utils/rsvpUtils';
+import { getORPSplit, getBionicLength } from '../utils/rsvpUtils';
 
 interface ReaderDisplayProps {
   word: string;
+  isBionicMode: boolean;
 }
 
-const ReaderDisplay: React.FC<ReaderDisplayProps> = ({ word }) => {
+const BionicFragment: React.FC<{ text: string }> = ({ text }) => {
+  // We need to handle cases where the 'text' might be multiple words (Chunk Mode)
+  // or a partial word. 
+  // Simple heuristic: split by space, apply bionic calc to each part.
+  
+  const parts = text.split(/(\s+)/); // Keep delimiters
+  
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part.trim()) return <span key={i}>{part}</span>; // Whitespace
+        
+        // Calculate split point
+        const split = getBionicLength(part);
+        const boldPart = part.slice(0, split);
+        const normalPart = part.slice(split);
+        
+        return (
+          <span key={i}>
+            <span className="font-bold text-white">{boldPart}</span>
+            <span className="opacity-70">{normalPart}</span>
+          </span>
+        );
+      })}
+    </>
+  );
+};
+
+const ReaderDisplay: React.FC<ReaderDisplayProps> = ({ word, isBionicMode }) => {
   const [start, pivot, end] = getORPSplit(word);
 
   return (
@@ -19,7 +48,7 @@ const ReaderDisplay: React.FC<ReaderDisplayProps> = ({ word }) => {
         {/* Left part of the word */}
         <div className="flex-1 text-right whitespace-nowrap">
           <span className="text-4xl sm:text-6xl md:text-7xl font-mono text-gray-200">
-            {start}
+            {isBionicMode ? <BionicFragment text={start} /> : start}
           </span>
         </div>
 
@@ -33,7 +62,7 @@ const ReaderDisplay: React.FC<ReaderDisplayProps> = ({ word }) => {
         {/* Right part of the word */}
         <div className="flex-1 text-left whitespace-nowrap">
           <span className="text-4xl sm:text-6xl md:text-7xl font-mono text-gray-200">
-            {end}
+            {isBionicMode ? <BionicFragment text={end} /> : end}
           </span>
         </div>
       </div>

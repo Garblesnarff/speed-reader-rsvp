@@ -4,7 +4,8 @@ import InputView from './components/InputView';
 import ReaderDisplay from './components/ReaderDisplay';
 import Controls from './components/Controls';
 import ContextWindow from './components/ContextWindow';
-import { parseTextToWords, calculateWordDelay } from './utils/rsvpUtils';
+import SettingsModal from './components/SettingsModal';
+import { parseTextToWords, calculateWordDelay, calculateChunkDelay } from './utils/rsvpUtils';
 import { AppMode } from './types';
 
 const App: React.FC = () => {
@@ -20,6 +21,12 @@ const App: React.FC = () => {
   const [isContextOpen, setIsContextOpen] = useState<boolean>(true);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
 
+  // Settings State
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isChunkMode, setIsChunkMode] = useState<boolean>(false);
+  const [chunkSize, setChunkSize] = useState<number>(2);
+  const [isBionicMode, setIsBionicMode] = useState<boolean>(false);
+
   // Refs for timing
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,7 +39,7 @@ const App: React.FC = () => {
       setWords(parsed);
       setCurrentIndex(0);
       setMode(AppMode.READER);
-      setIsPlaying(false); // Let user start manually, or auto-start if preferred
+      setIsPlaying(false);
       setElapsedTime(0);
     }
   };
@@ -64,16 +71,33 @@ const App: React.FC = () => {
   // The main RSVP Loop
   useEffect(() => {
     if (isPlaying && currentIndex < words.length) {
-      const currentWord = words[currentIndex];
-      const delay = calculateWordDelay(currentWord, wpm);
+      // Determine effective chunk size
+      const currentChunkSize = isChunkMode ? chunkSize : 1;
+      
+      // Get the current word(s) to determine delay
+      const chunkWords = words.slice(currentIndex, currentIndex + currentChunkSize);
+      
+      // If we are at the end and have fewer words than chunk size, that's fine, calculateChunkDelay handles it.
+      let delay = 0;
+      if (isChunkMode) {
+        delay = calculateChunkDelay(chunkWords, wpm);
+      } else {
+        // Fallback to single word precise calc
+        delay = calculateWordDelay(words[currentIndex], wpm);
+      }
 
       timeoutRef.current = setTimeout(() => {
         setCurrentIndex(prev => {
-          if (prev + 1 >= words.length) {
+          const nextIndex = prev + currentChunkSize;
+          if (nextIndex >= words.length) {
             setIsPlaying(false);
-            return prev; // Stop at the end
+            // Ensure we don't go out of bounds, but sitting at words.length is fine (shows nothing or completion state)
+            // Actually, let's clamp to words.length - 1 if we want to show the last word, 
+            // but usually stopping means we are done. 
+            // Let's cap at words.length so ContextWindow knows we are done.
+            return Math.min(nextIndex, words.length); 
           }
-          return prev + 1;
+          return nextIndex;
         });
       }, delay);
     }
@@ -83,7 +107,7 @@ const App: React.FC = () => {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [isPlaying, currentIndex, words, wpm]);
+  }, [isPlaying, currentIndex, words, wpm, isChunkMode, chunkSize]);
 
   // Handle Seek
   const handleSeek = (percent: number) => {
@@ -93,8 +117,18 @@ const App: React.FC = () => {
   };
 
   const progress = words.length > 0 
-    ? (currentIndex / (words.length - 1)) * 100 
+    ? (Math.min(currentIndex, words.length - 1) / (words.length - 1)) * 100 
     : 0;
+
+  // Compute displayed text based on mode
+  const getDisplayedText = () => {
+    if (currentIndex >= words.length) return "Done";
+    
+    if (isChunkMode) {
+      return words.slice(currentIndex, currentIndex + chunkSize).join(' ');
+    }
+    return words[currentIndex];
+  };
 
   // --- Render ---
 
@@ -115,7 +149,7 @@ const App: React.FC = () => {
           Edit Text
         </button>
         <div className="text-gray-700 text-xs font-mono">
-          {currentIndex + 1} / {words.length}
+          {Math.min(currentIndex + 1, words.length)} / {words.length}
         </div>
       </header>
 
@@ -123,7 +157,10 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col relative z-10">
         <div className="flex-1 flex items-center justify-center">
           {words.length > 0 && (
-            <ReaderDisplay word={words[currentIndex]} />
+            <ReaderDisplay 
+              word={getDisplayedText()} 
+              isBionicMode={isBionicMode}
+            />
           )}
         </div>
         
@@ -139,6 +176,7 @@ const App: React.FC = () => {
             onRestart={handleRestart}
             isContextOpen={isContextOpen}
             onToggleContext={() => setIsContextOpen(!isContextOpen)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
           
           <ContextWindow 
@@ -146,11 +184,24 @@ const App: React.FC = () => {
             currentIndex={currentIndex}
             isOpen={isContextOpen}
             elapsedTime={elapsedTime}
+            isBionicMode={isBionicMode}
           />
         </div>
       </main>
 
-      {/* Background Ambience (Optional) */}
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        isChunkMode={isChunkMode}
+        onToggleChunkMode={() => setIsChunkMode(!isChunkMode)}
+        chunkSize={chunkSize}
+        onChunkSizeChange={setChunkSize}
+        isBionicMode={isBionicMode}
+        onToggleBionicMode={() => setIsBionicMode(!isBionicMode)}
+      />
+
+      {/* Background Ambience */}
       <div className="absolute inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900/50 via-gray-950 to-gray-950"></div>
     </div>
   );

@@ -5,4 +5,6 @@ export enum AppMode {
 
 export interface ReaderSettings {
   wpm: number;
+  chunkSize: number;
+  isChunkMode: boolean;
 }

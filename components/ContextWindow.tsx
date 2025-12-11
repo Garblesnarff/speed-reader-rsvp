@@ -1,13 +1,15 @@
 import React, { useEffect, useRef } from 'react';
+import { getBionicLength } from '../utils/rsvpUtils';
 
 interface ContextWindowProps {
   words: string[];
   currentIndex: number;
   isOpen: boolean;
   elapsedTime: number;
+  isBionicMode: boolean;
 }
 
-const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOpen, elapsedTime }) => {
+const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOpen, elapsedTime, isBionicMode }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeWordRef = useRef<HTMLSpanElement>(null);
 
@@ -26,6 +28,21 @@ const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOp
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const renderWord = (word: string) => {
+    if (!isBionicMode) return word;
+
+    const split = getBionicLength(word);
+    const boldPart = word.slice(0, split);
+    const normalPart = word.slice(split);
+    
+    return (
+      <>
+        <span className="font-bold text-gray-100">{boldPart}</span>
+        <span className="opacity-80">{normalPart}</span>
+      </>
+    );
   };
 
   if (!isOpen) return null;
@@ -53,7 +70,11 @@ const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOp
             className += "text-gray-600";
           } else if (index === currentIndex) {
             // Current word
-            className += "bg-red-900/50 text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.2)] scale-105 inline-block";
+            className += "bg-red-900/50 text-white shadow-[0_0_10px_rgba(239,68,68,0.2)] scale-105 inline-block";
+            // Note: We don't apply extra bold to the container here if bionic is on, 
+            // because bionic handles internal bolding. But current word usually deserves focus.
+            // Let's keep the current word container styling but maybe not override internal bionic styles.
+            if (!isBionicMode) className += " font-bold"; 
           } else {
             // Future words
             className += "text-gray-400";
@@ -65,7 +86,7 @@ const ContextWindow: React.FC<ContextWindowProps> = ({ words, currentIndex, isOp
               ref={index === currentIndex ? activeWordRef : null}
               className={className}
             >
-              {word}
+              {renderWord(word)}
             </span>
           );
         })}

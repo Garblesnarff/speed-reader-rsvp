@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, RotateCcw, SkipBack, SkipForward, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
+import { Play, Pause, RotateCcw, PanelBottomClose, PanelBottomOpen, Settings } from 'lucide-react';
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -11,6 +11,7 @@ interface ControlsProps {
   onRestart: () => void;
   isContextOpen: boolean;
   onToggleContext: () => void;
+  onOpenSettings: () => void;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -22,7 +23,8 @@ const Controls: React.FC<ControlsProps> = ({
   onSeek,
   onRestart,
   isContextOpen,
-  onToggleContext
+  onToggleContext,
+  onOpenSettings
 }) => {
   return (
     <div className="w-full max-w-3xl mx-auto px-6 py-6 bg-gray-900/80 backdrop-blur-md rounded-t-2xl border-t border-gray-800 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
@@ -95,18 +97,28 @@ const Controls: React.FC<ControlsProps> = ({
           </div>
         </div>
 
-        {/* Context Toggle */}
-        <button
-          onClick={onToggleContext}
-          className={`p-3 rounded-xl border transition-all ${
-            isContextOpen 
-              ? 'bg-red-500/10 border-red-500/50 text-red-400' 
-              : 'bg-gray-800 border-transparent text-gray-400 hover:bg-gray-700'
-          }`}
-          title="Toggle Context Window"
-        >
-          {isContextOpen ? <PanelBottomOpen size={20} /> : <PanelBottomClose size={20} />}
-        </button>
+        {/* Right Tools */}
+        <div className="flex items-center gap-2">
+           <button
+            onClick={onOpenSettings}
+            className="p-3 rounded-xl border border-transparent text-gray-400 hover:bg-gray-800 hover:text-white transition-all"
+            title="Settings"
+          >
+            <Settings size={20} />
+          </button>
+          
+          <button
+            onClick={onToggleContext}
+            className={`p-3 rounded-xl border transition-all ${
+              isContextOpen 
+                ? 'bg-red-500/10 border-red-500/50 text-red-400' 
+                : 'bg-gray-800 border-transparent text-gray-400 hover:bg-gray-700'
+            }`}
+            title="Toggle Context Window"
+          >
+            {isContextOpen ? <PanelBottomOpen size={20} /> : <PanelBottomClose size={20} />}
+          </button>
+        </div>
 
       </div>
     </div>
