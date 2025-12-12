@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [isChunkMode, setIsChunkMode] = useState<boolean>(false);
   const [chunkSize, setChunkSize] = useState<number>(2);
   const [isBionicMode, setIsBionicMode] = useState<boolean>(false);
+  const [isPeripheralMode, setIsPeripheralMode] = useState<boolean>(false);
   const [focusMode, setFocusMode] = useState<FocusMode>(FocusMode.DEFAULT);
 
   // Refs for timing
@@ -92,10 +93,6 @@ const App: React.FC = () => {
           const nextIndex = prev + currentChunkSize;
           if (nextIndex >= words.length) {
             setIsPlaying(false);
-            // Ensure we don't go out of bounds, but sitting at words.length is fine (shows nothing or completion state)
-            // Actually, let's clamp to words.length - 1 if we want to show the last word, 
-            // but usually stopping means we are done. 
-            // Let's cap at words.length so ContextWindow knows we are done.
             return Math.min(nextIndex, words.length); 
           }
           return nextIndex;
@@ -121,19 +118,32 @@ const App: React.FC = () => {
     ? (Math.min(currentIndex, words.length - 1) / (words.length - 1)) * 100 
     : 0;
 
-  // Compute displayed text based on mode
+  // --- Display Text Helpers ---
+  const currentChunkSize = isChunkMode ? chunkSize : 1;
+
   const getDisplayedText = () => {
     if (currentIndex >= words.length) return "Done";
-    
-    if (isChunkMode) {
-      return words.slice(currentIndex, currentIndex + chunkSize).join(' ');
-    }
-    return words[currentIndex];
+    return words.slice(currentIndex, currentIndex + currentChunkSize).join(' ');
   };
+
+  const getPrevText = () => {
+    if (!isPeripheralMode) return undefined;
+    const start = currentIndex - currentChunkSize;
+    if (start < 0) return undefined;
+    return words.slice(start, currentIndex).join(' ');
+  };
+
+  const getNextText = () => {
+    if (!isPeripheralMode) return undefined;
+    const start = currentIndex + currentChunkSize;
+    if (start >= words.length) return undefined;
+    const end = start + currentChunkSize;
+    return words.slice(start, end).join(' ');
+  };
+
 
   // --- Visual & Theme Logic ---
 
-  // Determine container classes based on FocusMode
   const getContainerClasses = () => {
     switch (focusMode) {
       case FocusMode.ZEN:
@@ -162,9 +172,6 @@ const App: React.FC = () => {
     );
   };
 
-  // UI Visibility Logic for Minimal Mode
-  // If Minimal AND Playing, we hide the UI unless the user is hovering over the container.
-  // We can achieve this with CSS group-hover logic.
   const isMinimalAutoHidden = focusMode === FocusMode.MINIMAL && isPlaying;
 
   // --- Render ---
@@ -197,6 +204,8 @@ const App: React.FC = () => {
             <ReaderDisplay 
               word={getDisplayedText()} 
               isBionicMode={isBionicMode}
+              prevWord={getPrevText()}
+              nextWord={getNextText()}
             />
           )}
         </div>
@@ -238,6 +247,8 @@ const App: React.FC = () => {
         onToggleBionicMode={() => setIsBionicMode(!isBionicMode)}
         focusMode={focusMode}
         onFocusModeChange={setFocusMode}
+        isPeripheralMode={isPeripheralMode}
+        onTogglePeripheralMode={() => setIsPeripheralMode(!isPeripheralMode)}
       />
 
       {/* Background Ambience */}
