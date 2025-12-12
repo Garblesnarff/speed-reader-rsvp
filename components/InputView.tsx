@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { BookOpen, Play } from 'lucide-react';
+import { BookOpen, Play, LayoutDashboard } from 'lucide-react';
 
 interface InputViewProps {
   onStart: (text: string) => void;
+  onOpenDashboard: () => void;
   initialText?: string;
 }
 
@@ -14,7 +15,7 @@ The average person reads at about 200-250 words per minute. With this method, yo
 
 Simply paste your text here, click start, and focus on the red letter in the center of the screen. Adjust the speed using the slider below. Good luck!`;
 
-const InputView: React.FC<InputViewProps> = ({ onStart, initialText }) => {
+const InputView: React.FC<InputViewProps> = ({ onStart, onOpenDashboard, initialText }) => {
   const [text, setText] = useState(initialText || DEFAULT_TEXT);
 
   const handleSubmit = () => {
@@ -24,7 +25,15 @@ const InputView: React.FC<InputViewProps> = ({ onStart, initialText }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-4xl mx-auto w-full">
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-4xl mx-auto w-full relative">
+      <button 
+        onClick={onOpenDashboard}
+        className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2 rounded-full bg-gray-900 border border-gray-800 text-gray-400 hover:text-white hover:border-gray-700 transition-colors text-sm font-medium"
+      >
+        <LayoutDashboard size={16} />
+        Dashboard
+      </button>
+
       <div className="flex items-center gap-3 mb-8">
         <BookOpen className="w-10 h-10 text-red-500" />
         <h1 className="text-4xl font-bold tracking-tight text-white">SpeedRead Pro</h1>

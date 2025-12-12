@@ -5,8 +5,12 @@ import ReaderDisplay from './components/ReaderDisplay';
 import Controls from './components/Controls';
 import ContextWindow from './components/ContextWindow';
 import SettingsModal from './components/SettingsModal';
+import Dashboard from './components/Dashboard';
+import QuizModal from './components/QuizModal';
 import { parseTextToWords, calculateWordDelay, calculateChunkDelay } from './utils/rsvpUtils';
-import { AppMode, FocusMode } from './types';
+import { saveSession } from './utils/storage';
+import { generateQuiz } from './utils/ai';
+import { AppMode, FocusMode, QuizQuestion } from './types';
 
 const App: React.FC = () => {
   // --- State ---
@@ -20,6 +24,7 @@ const App: React.FC = () => {
   const [wpm, setWpm] = useState<number>(300);
   const [isContextOpen, setIsContextOpen] = useState<boolean>(true);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
 
   // Settings State
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -28,6 +33,11 @@ const App: React.FC = () => {
   const [isBionicMode, setIsBionicMode] = useState<boolean>(false);
   const [isPeripheralMode, setIsPeripheralMode] = useState<boolean>(false);
   const [focusMode, setFocusMode] = useState<FocusMode>(FocusMode.DEFAULT);
+
+  // Quiz State
+  const [isQuizOpen, setIsQuizOpen] = useState<boolean>(false);
+  const [quizLoading, setQuizLoading] = useState<boolean>(false);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
 
   // Refs for timing
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,18 +53,45 @@ const App: React.FC = () => {
       setMode(AppMode.READER);
       setIsPlaying(false);
       setElapsedTime(0);
+      setSessionStartTime(Date.now());
     }
+  };
+
+  const saveCurrentSession = () => {
+    if (words.length === 0 || elapsedTime < 5) return; // Ignore very short sessions
+    saveSession({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      wordCount: Math.min(currentIndex, words.length),
+      wpm: wpm,
+      durationSeconds: elapsedTime,
+      snippet: words.slice(0, 5).join(' ') + '...'
+    });
   };
 
   const handleBackToInput = () => {
     setIsPlaying(false);
+    saveCurrentSession();
     setMode(AppMode.INPUT);
     setElapsedTime(0);
   };
 
   const handleRestart = () => {
+    saveCurrentSession(); // Save the run before restarting
     setCurrentIndex(0);
     setElapsedTime(0);
+    setSessionStartTime(Date.now());
+  };
+
+  const handleStartQuiz = async () => {
+    setIsPlaying(false);
+    setIsQuizOpen(true);
+    if (quizQuestions.length === 0) {
+      setQuizLoading(true);
+      const questions = await generateQuiz(inputText);
+      setQuizQuestions(questions);
+      setQuizLoading(false);
+    }
   };
 
   // Timer Logic
@@ -141,7 +178,6 @@ const App: React.FC = () => {
     return words.slice(start, end).join(' ');
   };
 
-
   // --- Visual & Theme Logic ---
 
   const getContainerClasses = () => {
@@ -176,8 +212,18 @@ const App: React.FC = () => {
 
   // --- Render ---
 
+  if (mode === AppMode.DASHBOARD) {
+    return <Dashboard onBack={() => setMode(AppMode.INPUT)} />;
+  }
+
   if (mode === AppMode.INPUT) {
-    return <InputView onStart={handleStart} initialText={inputText} />;
+    return (
+      <InputView 
+        onStart={handleStart} 
+        initialText={inputText} 
+        onOpenDashboard={() => setMode(AppMode.DASHBOARD)}
+      />
+    );
   }
 
   return (
@@ -223,6 +269,8 @@ const App: React.FC = () => {
             isContextOpen={isContextOpen}
             onToggleContext={() => setIsContextOpen(!isContextOpen)}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            wordsLeft={Math.max(0, words.length - currentIndex)}
+            onStartQuiz={handleStartQuiz}
           />
           
           <ContextWindow 
@@ -235,7 +283,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Settings Modal */}
+      {/* Modals */}
       <SettingsModal 
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -249,6 +297,13 @@ const App: React.FC = () => {
         onFocusModeChange={setFocusMode}
         isPeripheralMode={isPeripheralMode}
         onTogglePeripheralMode={() => setIsPeripheralMode(!isPeripheralMode)}
+      />
+
+      <QuizModal 
+        isOpen={isQuizOpen}
+        onClose={() => setIsQuizOpen(false)}
+        questions={quizQuestions}
+        isLoading={quizLoading}
       />
 
       {/* Background Ambience */}

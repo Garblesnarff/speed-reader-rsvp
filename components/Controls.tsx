@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Pause, RotateCcw, PanelBottomClose, PanelBottomOpen, Settings } from 'lucide-react';
+import { Play, Pause, RotateCcw, PanelBottomClose, PanelBottomOpen, Settings, BrainCircuit } from 'lucide-react';
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -12,6 +12,8 @@ interface ControlsProps {
   isContextOpen: boolean;
   onToggleContext: () => void;
   onOpenSettings: () => void;
+  wordsLeft: number;
+  onStartQuiz: () => void;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -24,8 +26,16 @@ const Controls: React.FC<ControlsProps> = ({
   onRestart,
   isContextOpen,
   onToggleContext,
-  onOpenSettings
+  onOpenSettings,
+  wordsLeft,
+  onStartQuiz
 }) => {
+  
+  // Calculate Time Remaining
+  const minutesLeft = Math.floor(wordsLeft / wpm);
+  const secondsLeft = Math.floor(((wordsLeft / wpm) * 60) % 60);
+  const timeRemaining = `${minutesLeft}m ${secondsLeft}s left`;
+
   return (
     <div className="w-full max-w-3xl mx-auto px-6 py-6 bg-gray-900/80 backdrop-blur-md rounded-t-2xl border-t border-gray-800 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)]">
       
@@ -48,9 +58,8 @@ const Controls: React.FC<ControlsProps> = ({
           aria-label="Seek progress"
         />
         <div className="flex justify-between mt-2 text-xs text-gray-500 font-mono">
-          <span>Start</span>
           <span>{Math.round(progress)}%</span>
-          <span>End</span>
+          <span className="text-gray-400">{timeRemaining}</span>
         </div>
       </div>
 
@@ -99,6 +108,14 @@ const Controls: React.FC<ControlsProps> = ({
 
         {/* Right Tools */}
         <div className="flex items-center gap-2">
+           <button
+            onClick={onStartQuiz}
+            className="p-3 rounded-xl border border-transparent text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 transition-all"
+            title="Test Comprehension"
+          >
+            <BrainCircuit size={20} />
+          </button>
+
            <button
             onClick={onOpenSettings}
             className="p-3 rounded-xl border border-transparent text-gray-400 hover:bg-gray-800 hover:text-white transition-all"
