@@ -6,7 +6,7 @@ import Controls from './components/Controls';
 import ContextWindow from './components/ContextWindow';
 import SettingsModal from './components/SettingsModal';
 import { parseTextToWords, calculateWordDelay, calculateChunkDelay } from './utils/rsvpUtils';
-import { AppMode } from './types';
+import { AppMode, FocusMode } from './types';
 
 const App: React.FC = () => {
   // --- State ---
@@ -26,6 +26,7 @@ const App: React.FC = () => {
   const [isChunkMode, setIsChunkMode] = useState<boolean>(false);
   const [chunkSize, setChunkSize] = useState<number>(2);
   const [isBionicMode, setIsBionicMode] = useState<boolean>(false);
+  const [focusMode, setFocusMode] = useState<FocusMode>(FocusMode.DEFAULT);
 
   // Refs for timing
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,6 +131,42 @@ const App: React.FC = () => {
     return words[currentIndex];
   };
 
+  // --- Visual & Theme Logic ---
+
+  // Determine container classes based on FocusMode
+  const getContainerClasses = () => {
+    switch (focusMode) {
+      case FocusMode.ZEN:
+        return "bg-slate-950 text-slate-100";
+      case FocusMode.INTENSE:
+        return "bg-black text-white";
+      case FocusMode.MINIMAL:
+        return "bg-gray-950 text-gray-200";
+      default: // DEFAULT
+        return "bg-gray-950 text-white";
+    }
+  };
+
+  const getBackgroundElement = () => {
+    if (focusMode === FocusMode.MINIMAL || focusMode === FocusMode.INTENSE) {
+      return null;
+    }
+    if (focusMode === FocusMode.ZEN) {
+      return (
+         <div className="absolute inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-teal-900/20 via-slate-950 to-slate-950"></div>
+      )
+    }
+    // Default
+    return (
+      <div className="absolute inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900/50 via-gray-950 to-gray-950"></div>
+    );
+  };
+
+  // UI Visibility Logic for Minimal Mode
+  // If Minimal AND Playing, we hide the UI unless the user is hovering over the container.
+  // We can achieve this with CSS group-hover logic.
+  const isMinimalAutoHidden = focusMode === FocusMode.MINIMAL && isPlaying;
+
   // --- Render ---
 
   if (mode === AppMode.INPUT) {
@@ -137,10 +174,10 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden relative">
+    <div className={`flex flex-col h-screen overflow-hidden relative group transition-colors duration-500 ${getContainerClasses()}`}>
       
       {/* Header */}
-      <header className="flex-none p-4 flex justify-between items-center z-20">
+      <header className={`flex-none p-4 flex justify-between items-center z-20 transition-all duration-500 ${isMinimalAutoHidden ? 'opacity-0 group-hover:opacity-100 -translate-y-4 group-hover:translate-y-0' : 'opacity-100'}`}>
         <button 
           onClick={handleBackToInput}
           className="flex items-center gap-2 text-gray-500 hover:text-white transition-colors text-sm font-medium uppercase tracking-wide"
@@ -165,7 +202,7 @@ const App: React.FC = () => {
         </div>
         
         {/* Fixed Bottom Section */}
-        <div className="flex-none w-full">
+        <div className={`flex-none w-full transition-all duration-500 ${isMinimalAutoHidden ? 'opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0' : 'opacity-100'}`}>
           <Controls 
             isPlaying={isPlaying}
             onTogglePlay={() => setIsPlaying(!isPlaying)}
@@ -199,10 +236,12 @@ const App: React.FC = () => {
         onChunkSizeChange={setChunkSize}
         isBionicMode={isBionicMode}
         onToggleBionicMode={() => setIsBionicMode(!isBionicMode)}
+        focusMode={focusMode}
+        onFocusModeChange={setFocusMode}
       />
 
       {/* Background Ambience */}
-      <div className="absolute inset-0 pointer-events-none z-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900/50 via-gray-950 to-gray-950"></div>
+      {getBackgroundElement()}
     </div>
   );
 };

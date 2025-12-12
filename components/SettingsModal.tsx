@@ -1,5 +1,6 @@
 import React from 'react';
-import { X, Layers, Eye } from 'lucide-react';
+import { X, Layers, Eye, Monitor, Zap, Coffee, Maximize } from 'lucide-react';
+import { FocusMode } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface SettingsModalProps {
   onChunkSizeChange: (size: number) => void;
   isBionicMode: boolean;
   onToggleBionicMode: () => void;
+  focusMode: FocusMode;
+  onFocusModeChange: (mode: FocusMode) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -20,16 +23,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   chunkSize,
   onChunkSizeChange,
   isBionicMode,
-  onToggleBionicMode
+  onToggleBionicMode,
+  focusMode,
+  onFocusModeChange
 }) => {
   if (!isOpen) return null;
 
+  const modes = [
+    { id: FocusMode.DEFAULT, label: 'Default', icon: Monitor, desc: 'Standard RSVP experience' },
+    { id: FocusMode.MINIMAL, label: 'Minimal', icon: Maximize, desc: 'Hides UI while reading' },
+    { id: FocusMode.ZEN, label: 'Zen', icon: Coffee, desc: 'Calming ambient colors' },
+    { id: FocusMode.INTENSE, label: 'Intense', icon: Zap, desc: 'High contrast, solid black' },
+  ];
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-sm bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900/50 sticky top-0 backdrop-blur-md z-10">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             Settings
           </h2>
@@ -42,7 +54,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-8">
+          
+          {/* Focus Mode Section */}
+          <div className="space-y-4">
+             <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Focus Mode</label>
+             <div className="grid grid-cols-2 gap-3">
+               {modes.map((mode) => {
+                 const Icon = mode.icon;
+                 const isSelected = focusMode === mode.id;
+                 return (
+                   <button
+                    key={mode.id}
+                    onClick={() => onFocusModeChange(mode.id)}
+                    className={`flex flex-col items-start p-3 rounded-xl border transition-all text-left ${
+                      isSelected 
+                        ? 'bg-gray-800 border-red-500/50 text-white shadow-lg shadow-red-900/10' 
+                        : 'bg-gray-900/50 border-gray-800 text-gray-400 hover:bg-gray-800 hover:border-gray-700'
+                    }`}
+                   >
+                     <div className={`mb-2 p-1.5 rounded-lg ${isSelected ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                        <Icon size={16} />
+                     </div>
+                     <span className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-gray-300'}`}>{mode.label}</span>
+                     <span className="text-[10px] text-gray-500 mt-1 leading-tight">{mode.desc}</span>
+                   </button>
+                 )
+               })}
+             </div>
+          </div>
+
+          <div className="h-px bg-gray-800" />
           
           {/* Chunk Mode Setting */}
           <div className="space-y-4">
